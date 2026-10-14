@@ -33,6 +33,11 @@
   const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]
   const r2 = n => Math.round(n * 100) / 100
 
+  function rotate(x, y, cx, cy, a) {
+    const cos = Math.cos(a), sin = Math.sin(a), dx = x - cx, dy = y - cy
+    return [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos]
+  }
+
   function distToSegment(px, py, x1, y1, x2, y2) {
     const dx = x2 - x1, dy = y2 - y1
     const len2 = dx * dx + dy * dy
@@ -322,11 +327,31 @@
     return { x: Math.min(el.x, el.x + el.w), y: Math.min(el.y, el.y + el.h), w: Math.abs(el.w), h: Math.abs(el.h) }
   }
 
+  // Boxes, text and pictures turn with `angle` (radians, about their centre). Lines and strokes
+  // never carry one: turning them turns their points.
+  const centre = el => { const b = bounds(el); return [b.x + b.w / 2, b.y + b.h / 2] }
+
+  /* A scene point in the element's own unturned frame. */
+  function toLocal(el, x, y) {
+    if (!el.angle) return [x, y]
+    const [cx, cy] = centre(el)
+    return rotate(x, y, cx, cy, -el.angle)
+  }
+
+  /* The upright box around the element as it sits on the page, turned or not. */
+  function aabb(el) {
+    const b = bounds(el)
+    if (!el.angle) return b
+    const cos = Math.abs(Math.cos(el.angle)), sin = Math.abs(Math.sin(el.angle))
+    const w = b.w * cos + b.h * sin, h = b.w * sin + b.h * cos
+    return { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - h / 2, w, h }
+  }
+
   function unionBounds(els) {
     if (!els.length) return null
     let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity
     for (const el of els) {
-      const b = bounds(el)
+      const b = aabb(el)
       const pad = el.type === 'mark' ? markWidth(el) / 2 : 0
       x1 = Math.min(x1, b.x - pad); y1 = Math.min(y1, b.y - pad); x2 = Math.max(x2, b.x + b.w + pad); y2 = Math.max(y2, b.y + b.h + pad)
     }
@@ -336,6 +361,7 @@
   const isFilled = el => SHAPES.includes(el.type) && el.bg && el.bg !== 'transparent'
 
   function hitTest(el, x, y, tol) {
+    [x, y] = toLocal(el, x, y)
     const b = bounds(el)
     const sw = el.type === 'mark' ? markWidth(el) : el.type === 'draw' ? (el.width || 2) * 2 : el.width || 2
     const pad = tol + sw
@@ -451,6 +477,12 @@
   function drawElement(ctx, el, dark) {
     ctx.save()
     if (el.opacity != null && el.opacity < 1) ctx.globalAlpha *= el.opacity
+    if (el.angle) {
+      const [cx, cy] = centre(el)
+      ctx.translate(cx, cy)
+      ctx.rotate(el.angle)
+      ctx.translate(-cx, -cy)
+    }
     if (el.type === 'text') {
       ctx.font = fontCss(el)
       ctx.fillStyle = ink(el.stroke, dark)
@@ -518,7 +550,8 @@
     if (embedFonts && els.some(e => e.type === 'text')) out.push(`<defs><style>@import url('${esc(FONT_IMPORT)}');</style></defs>`)
     if (background) out.push(`<rect x="${vx}" y="${vy}" width="${w}" height="${h}" fill="${dark ? PAPER.dark : PAPER.light}"/>`)
     for (const el of els) {
-      const op = el.opacity != null && el.opacity < 1 ? ` opacity="${el.opacity}"` : ''
+      let op = el.opacity != null && el.opacity < 1 ? ` opacity="${el.opacity}"` : ''
+      if (el.angle) { const [cx, cy] = centre(el); op += ` transform="rotate(${r2((el.angle * 180) / Math.PI)} ${r2(cx)} ${r2(cy)})"` }
       if (el.type === 'text') {
         const anchor = el.align === 'center' ? 'middle' : el.align === 'right' ? 'end' : 'start'
         out.push(`<g${op} font-family="${esc(fontFamily(el.font))}" font-size="${el.fontSize}" fill="${ink(el.stroke, dark)}" text-anchor="${anchor}">`)
@@ -573,6 +606,8 @@
       seed: Number.isInteger(raw.seed) ? raw.seed >>> 0 : newSeed(),
       v: Math.random(),
     }
+    const angle = Number.isFinite(raw.angle) ? ((raw.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) : 0
+    if (angle && ['rect', 'diamond', 'ellipse', 'text', 'image'].includes(el.type)) el.angle = angle
     if (['line', 'arrow', 'draw', 'mark'].includes(el.type)) {
       if (!Array.isArray(raw.points) || !raw.points.length) return null
       el.points = raw.points.slice(0, 20000).filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])).map(p => [num(p[0]), num(p[1])])
@@ -603,7 +638,7 @@
   window.Scrawl = {
     TYPES, SHAPES, LINE_HEIGHT, PAPER,
     fontFamily, fontCss, newSeed, uid,
-    bounds, unionBounds, hitTest, measureText,
+    bounds, aabb, unionBounds, hitTest, measureText, rotate, toLocal,
     drawElement, renderPNG, renderSVG, ink, sanitize, setImageSource,
   }
 })()

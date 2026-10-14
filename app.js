@@ -128,6 +128,8 @@
   let drag = null
   let editing = null
   let spaceDown = false
+  let peekTool = null      // the tool to go back to after Ctrl lends you select
+  let overCanvas = false
   let lastScene = [innerWidth / 2, innerHeight / 2]
   let history = { undo: [], redo: [], last: '[]' }
 
@@ -193,7 +195,7 @@
     ctx.scale(view.zoom, view.zoom)
     for (const el of doc.elements) {
       if (editing && editing.el === el) continue
-      const b = S.bounds(el)
+      const b = S.aabb(el)
       const pad = 60
       if (b.x > vx2 + pad || b.y > vy2 + pad || b.x + b.w < vx1 - pad || b.y + b.h < vy1 - pad) continue
       if (drag?.mode === 'erase' && drag.hits.has(el.id)) { ctx.globalAlpha = 0.2; S.drawElement(ctx, el, dark); ctx.globalAlpha = 1 }
@@ -245,26 +247,72 @@
     if (sel.length > 1) {
       ctx.lineWidth = 1
       ctx.setLineDash([3, 4])
-      for (const el of sel) { const b = S.unionBounds([el]); ctx.strokeRect(sx(b.x) - 4 + 0.5, sy(b.y) - 4 + 0.5, b.w * view.zoom + 8, b.h * view.zoom + 8) }
+      for (const el of sel) strokeFrame(frameOf([el]), 4)
       ctx.setLineDash([])
     }
     const single = sel.length === 1 ? sel[0] : null
     if (!(single && (single.type === 'line' || single.type === 'arrow'))) {
-      const b = S.unionBounds(sel)
       ctx.lineWidth = 1.5
       ctx.setLineDash([6, 5])
-      ctx.strokeRect(sx(b.x) - 10, sy(b.y) - 10, b.w * view.zoom + 20, b.h * view.zoom + 20)
+      strokeFrame(selFrame(), 10)
       ctx.setLineDash([])
     }
-    if (!drag || drag.mode === 'resize' || drag.mode === 'point') {
-      ctx.fillStyle = color
+    if (!drag || ['resize', 'point', 'rotate'].includes(drag.mode)) {
       for (const hd of handles()) {
         ctx.beginPath()
+        if (hd.kind === 'rotate') {
+          ctx.arc(hd.x, hd.y, 6, 0, Math.PI * 2)
+          ctx.fillStyle = dark ? S.PAPER.dark : S.PAPER.light
+          ctx.fill()
+          ctx.lineWidth = 2
+          ctx.stroke()
+          continue
+        }
         if (hd.kind === 'point') ctx.arc(hd.x, hd.y, 6.5, 0, Math.PI * 2)
         else ctx.rect(hd.x - 5, hd.y - 5, 10, 10)
+        ctx.fillStyle = color
         ctx.fill()
       }
     }
+    if (drag?.mode === 'rotate') {
+      const f = selFrame()
+      const deg = Math.round((((f.angle * 180) / Math.PI) % 360 + 360) % 360) % 360
+      const at = framePt(f, 0, (f.h * view.zoom) / 2 + 52)
+      ctx.font = `600 12px ${S.fontFamily('sans')}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = color
+      ctx.fillText(`${deg}°`, at.x, at.y)
+    }
+    ctx.restore()
+  }
+
+  /* A frame is a box in scene units that may be turned: { cx, cy, w, h, angle }. One box, text or
+   * picture keeps its own angle; lines, strokes and groups get an upright box. */
+  function frameOf(els) {
+    const one = els.length === 1 && !els[0].points ? els[0] : null
+    const b = one ? S.bounds(one) : S.unionBounds(els)
+    return { cx: b.x + b.w / 2, cy: b.y + b.h / 2, w: b.w, h: b.h, angle: one?.angle || 0 }
+  }
+
+  function selFrame() {
+    if (drag?.mode === 'rotate') return { ...drag.frame, angle: drag.frame.angle + drag.delta }
+    const sel = selectedEls()
+    return sel.length ? frameOf(sel) : null
+  }
+
+  // A point on the frame in screen pixels, given as an offset from its centre before turning.
+  function framePt(f, dx, dy) {
+    const c = Math.cos(f.angle), s = Math.sin(f.angle)
+    return { x: sx(f.cx) + dx * c - dy * s, y: sy(f.cy) + dx * s + dy * c }
+  }
+
+  function strokeFrame(f, pad) {
+    const w = f.w * view.zoom + pad * 2, h = f.h * view.zoom + pad * 2
+    ctx.save()
+    ctx.translate(sx(f.cx), sy(f.cy))
+    ctx.rotate(f.angle)
+    ctx.strokeRect(-w / 2, -h / 2, w, h)
     ctx.restore()
   }
 
@@ -275,14 +323,15 @@
       const el = sel[0]
       return el.points.map((p, i) => ({ kind: 'point', index: i, el, x: sx(el.x + p[0]), y: sy(el.y + p[1]) }))
     }
-    const b = S.unionBounds(sel)
-    const x1 = sx(b.x) - 10, y1 = sy(b.y) - 10, x2 = sx(b.x + b.w) + 10, y2 = sy(b.y + b.h) + 10
-    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2
+    const f = selFrame()
+    const hw = (f.w * view.zoom) / 2 + 10, hh = (f.h * view.zoom) / 2 + 10
     const textOnly = sel.every(e => e.type === 'text')
-    const small = x2 - x1 < 48 || y2 - y1 < 48
-    const list = [{ name: 'nw', x: x1, y: y1 }, { name: 'ne', x: x2, y: y1 }, { name: 'se', x: x2, y: y2 }, { name: 'sw', x: x1, y: y2 }]
-    if (!textOnly && !small) list.push({ name: 'n', x: mx, y: y1 }, { name: 'e', x: x2, y: my }, { name: 's', x: mx, y: y2 }, { name: 'w', x: x1, y: my })
-    return list.map(hd => ({ kind: 'resize', ...hd }))
+    const small = hw < 24 || hh < 24
+    const list = [['nw', -1, -1], ['ne', 1, -1], ['se', 1, 1], ['sw', -1, 1]]
+    if (!textOnly && !small) list.push(['n', 0, -1], ['e', 1, 0], ['s', 0, 1], ['w', -1, 0])
+    const out = list.map(([name, ux, uy]) => ({ kind: 'resize', name, dir: Math.atan2(uy, ux) + f.angle, ...framePt(f, ux * hw, uy * hh) }))
+    out.push({ kind: 'rotate', ...framePt(f, 0, hh + 24) })
+    return out
   }
 
   function handleAt(px, py) {
@@ -296,7 +345,8 @@
       const el = doc.elements[i]
       if (selected.has(el.id) && selected.size === 1 && el.type !== 'line' && el.type !== 'arrow') {
         const b = S.bounds(el)
-        if (x >= b.x - tol && x <= b.x + b.w + tol && y >= b.y - tol && y <= b.y + b.h + tol) return el
+        const [lx, ly] = S.toLocal(el, x, y)
+        if (lx >= b.x - tol && lx <= b.x + b.w + tol && ly >= b.y - tol && ly <= b.y + b.h + tol) return el
       }
       if (S.hitTest(el, x, y, tol)) return el
     }
@@ -686,7 +736,8 @@
 
   /* ---------- tools ---------- */
 
-  function setTool(t) {
+  function setTool(t, peek = false) {
+    if (!peek) peekTool = null
     if (editing && t !== 'text') commitText()
     tool = t
     document.body.dataset.tool = t
@@ -720,6 +771,22 @@
   for (const b of all('.tool[data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool))
   $('#lockBtn').addEventListener('click', toggleLock)
 
+  /* Hold Ctrl (Cmd on a Mac) over the page to borrow the select tool; let go to get your tool back. */
+  function startPeek() {
+    if (peekTool || tool === 'select' || editing || drag || dialogOpen()) return
+    const t = tool
+    setTool('select', true)
+    peekTool = t
+  }
+  function endPeek() {
+    if (!peekTool || drag) return
+    const t = peekTool
+    peekTool = null
+    if (tool === 'select') setTool(t)
+  }
+  canvas.addEventListener('pointerenter', () => { overCanvas = true })
+  canvas.addEventListener('pointerleave', () => { overCanvas = false })
+
   /* ---------- pointer input ---------- */
 
   const pointers = new Map()
@@ -744,6 +811,7 @@
     canvas.setPointerCapture(e.pointerId)
     const [x, y] = toScene(e.clientX, e.clientY)
     lastScene = [x, y]
+    if ((e.ctrlKey || e.metaKey) && e.button === 0 && !spaceDown) startPeek()
 
     if (e.button === 1 || spaceDown || tool === 'hand') {
       drag = { mode: 'pan', px: e.clientX, py: e.clientY, ox: view.ox, oy: view.oy }
@@ -773,9 +841,12 @@
   function selectDown(e, x, y) {
     const hd = handleAt(e.clientX, e.clientY)
     if (hd) {
-      drag = hd.kind === 'point'
-        ? { mode: 'point', el: hd.el, index: hd.index }
-        : { mode: 'resize', handle: hd.name, ob: S.unionBounds(selectedEls()), originals: selectedEls().map(o => JSON.parse(JSON.stringify(o))) }
+      const sel = selectedEls()
+      const originals = sel.map(o => JSON.parse(JSON.stringify(o)))
+      const frame = selFrame()
+      if (hd.kind === 'point') drag = { mode: 'point', el: hd.el, index: hd.index }
+      else if (hd.kind === 'rotate') drag = { mode: 'rotate', frame, delta: 0, start: Math.atan2(y - frame.cy, x - frame.cx), originals }
+      else drag = { mode: 'resize', handle: hd.name, frame, ob: frame.angle ? S.bounds(sel[0]) : S.unionBounds(sel), originals }
       requestRender()
       return
     }
@@ -806,7 +877,11 @@
     if (pinch && pointers.size === 2) { pinchMove(); return }
     const [x, y] = toScene(e.clientX, e.clientY)
     lastScene = [x, y]
-    if (!drag) { hoverCursor(e, x, y); return }
+    if (!drag) {
+      if (e.pointerType === 'mouse') { if (e.ctrlKey || e.metaKey) startPeek(); else endPeek() }
+      hoverCursor(e, x, y)
+      return
+    }
 
     switch (drag.mode) {
       case 'pan':
@@ -853,8 +928,17 @@
         break
       }
       case 'resize':
-        resizeSelection(snap(x), snap(y), e.shiftKey)
+        if (drag.frame.angle) resizeSelection(x, y, e.shiftKey)
+        else resizeSelection(snap(x), snap(y), e.shiftKey)
         break
+      case 'rotate': {
+        const f = drag.frame
+        let delta = Math.atan2(y - f.cy, x - f.cx) - drag.start
+        if (e.shiftKey) { const step = Math.PI / 12; delta = Math.round((f.angle + delta) / step) * step - f.angle }
+        drag.delta = delta
+        turnSelection(f.cx, f.cy, delta)
+        break
+      }
       case 'point':
         movePoint(drag.el, drag.index, snap(x), snap(y), e.shiftKey)
         break
@@ -863,7 +947,7 @@
         const x1 = Math.min(drag.sx, x), y1 = Math.min(drag.sy, y), x2 = Math.max(drag.sx, x), y2 = Math.max(drag.sy, y)
         selected = new Set(drag.base)
         for (const el of doc.elements) {
-          const b = S.bounds(el)
+          const b = S.aabb(el)
           if (b.x >= x1 && b.y >= y1 && b.x + b.w <= x2 && b.y + b.h <= y2) selected.add(el.id)
         }
         break
@@ -911,10 +995,14 @@
         selectedEls().forEach(normalize)
         commit()
         break
+      case 'rotate':
+        if (d.delta) commit()
+        break
       case 'erase':
         if (d.hits.size) { removeIds(d.hits); commit() }
         break
     }
+    if (!e.ctrlKey && !e.metaKey) endPeek()
     updateContext()
     requestRender()
   }
@@ -936,10 +1024,40 @@
     if (tool !== 'select' || e.pointerType !== 'mouse' || spaceDown) { canvas.style.cursor = ''; return }
     const hd = handleAt(e.clientX, e.clientY)
     if (hd) {
-      canvas.style.cursor = hd.kind === 'point' ? 'move' : { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize' }[hd.name]
+      canvas.style.cursor = hd.kind === 'point' ? 'move' : hd.kind === 'rotate' ? ROTATE_CURSOR
+        : RESIZE_CURSORS[((Math.round(hd.dir / (Math.PI / 4)) % 4) + 4) % 4]
       return
     }
     canvas.style.cursor = topHit(x, y) ? 'move' : ''
+  }
+
+  const RESIZE_CURSORS = ['ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize']
+  const ROTATE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M18.5 12a6.5 6.5 0 1 1-2-4.7M17 3.5v4h-4" stroke="#fff" stroke-width="4"/>'
+    + '<path d="M18.5 12a6.5 6.5 0 1 1-2-4.7M17 3.5v4h-4" stroke="#1d1d1b" stroke-width="1.8"/></svg>'
+  const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_SVG)}") 12 12, grab`
+
+  /* Turn the selection about (cx, cy). Boxes, text and pictures take an angle; lines and strokes turn their points. */
+  function turnSelection(cx, cy, delta) {
+    const TAU = Math.PI * 2
+    for (const o of drag.originals) {
+      const el = byId(o.id)
+      if (!el) continue
+      if (o.points) {
+        const [nx, ny] = S.rotate(o.x, o.y, cx, cy, delta)
+        el.x = nx; el.y = ny
+        el.points = o.points.map(([px, py]) => S.rotate(px, py, 0, 0, delta))
+      } else {
+        const b = S.bounds(o)
+        const [nx, ny] = S.rotate(b.x + b.w / 2, b.y + b.h / 2, cx, cy, delta)
+        el.x = o.x + nx - (b.x + b.w / 2)
+        el.y = o.y + ny - (b.y + b.h / 2)
+        const a = ((((o.angle || 0) + delta) % TAU) + TAU) % TAU
+        if (a > 1e-4 && TAU - a > 1e-4) el.angle = a
+        else delete el.angle
+      }
+      bump(el)
+    }
   }
 
   function snapAngle(dx, dy) {
@@ -963,7 +1081,9 @@
   }
 
   function resizeSelection(x, y, shift) {
-    const { ob, originals, handle } = drag
+    const { ob, originals, handle, frame } = drag
+    // A turned element resizes in its own frame, then is put back so it turns about the same spot.
+    if (frame.angle) [x, y] = S.rotate(x, y, frame.cx, frame.cy, -frame.angle)
     let x1 = ob.x, y1 = ob.y, x2 = ob.x + ob.w, y2 = ob.y + ob.h
     if (handle.includes('w')) x1 = x
     if (handle.includes('e')) x2 = x
@@ -1005,6 +1125,12 @@
         el.y = y1 + (o.y - ob.y) * fy
         el.w = o.w * fx
         el.h = o.h * fy
+      }
+      if (frame.angle) {
+        const lx = el.x + el.w / 2, ly = el.y + el.h / 2
+        const [wx, wy] = S.rotate(lx, ly, frame.cx, frame.cy, frame.angle)
+        el.x += wx - lx
+        el.y += wy - ly
       }
       bump(el)
     }
@@ -1125,11 +1251,13 @@
     el.w = m.w; el.h = m.h
     ta.style.font = `${el.fontSize}px ${S.fontFamily(el.font)}`
     ta.style.lineHeight = String(S.LINE_HEIGHT)
-    ta.style.left = `${sx(el.x)}px`
-    ta.style.top = `${sy(el.y)}px`
+    // Scale (and turn) about the middle of the words, where the element turns.
+    ta.style.left = `${sx(el.x + m.w / 2) - m.w / 2}px`
+    ta.style.top = `${sy(el.y + m.h / 2) - m.h / 2}px`
     ta.style.width = `${m.w + el.fontSize}px`
     ta.style.height = `${m.h}px`
-    ta.style.transform = `scale(${view.zoom})`
+    ta.style.transformOrigin = `${m.w / 2}px ${m.h / 2}px`
+    ta.style.transform = `rotate(${el.angle || 0}rad) scale(${view.zoom})`
     ta.style.color = S.ink(el.stroke, dark)
     ta.style.opacity = String(el.opacity ?? 1)
   }
@@ -1221,7 +1349,7 @@
       const b = S.unionBounds(sel)
       x = sx(b.x + b.w / 2) - bw / 2
       y = sy(b.y) - bh - 22
-      if (y < 70) y = sy(b.y + b.h) + 22
+      if (y < 70) y = sy(b.y + b.h) + 56
     }
     x = clamp(x, left + 10, innerWidth - bw - 10)
     y = clamp(y, 70, innerHeight - bh - (isPhone() ? 130 : 70))
@@ -1341,6 +1469,7 @@
 
   addEventListener('keydown', e => {
     if (isTyping(e.target) || dialogOpen()) return
+    if ((e.key === 'Control' || e.key === 'Meta') && overCanvas) { startPeek(); return }
     const mod = e.ctrlKey || e.metaKey
     const k = e.key.toLowerCase()
     if (e.key === ' ') {
@@ -1388,8 +1517,11 @@
     else return
     e.preventDefault()
   })
-  addEventListener('keyup', e => { if (e.key === ' ') { spaceDown = false; document.body.classList.remove('is-space') } })
-  addEventListener('blur', () => { spaceDown = false; document.body.classList.remove('is-space') })
+  addEventListener('keyup', e => {
+    if (e.key === ' ') { spaceDown = false; document.body.classList.remove('is-space') }
+    if (e.key === 'Control' || e.key === 'Meta') endPeek()
+  })
+  addEventListener('blur', () => { spaceDown = false; document.body.classList.remove('is-space'); endPeek() })
 
   /* ---------- clipboard ---------- */
 
