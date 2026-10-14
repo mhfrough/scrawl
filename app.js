@@ -15,7 +15,7 @@
 
   /* ---------- constants ---------- */
 
-  // Risograph inks: the marker colours in the rail.
+  // Risograph inks: the marker colours.
   const STROKES = ['#1d1d1b', '#0078bf', '#ff48b0', '#00a95c', '#ff6c2f', '#e3342f']
   const FILLS = ['#ffe14a', '#ffb3dd', '#a6d3f2', '#9fe0bd', '#ffc49e']
   const DEFAULT_STYLE = {
@@ -155,7 +155,7 @@
     for (const b of all('#themeSeg button')) b.classList.toggle('is-on', b.dataset.theme === t)
     for (const b of all('#paperSeg button')) b.classList.toggle('is-on', b.dataset.paper === prefs.paper)
     // Swatches and pens show each colour the way it will look on this paper.
-    for (const b of all('.swatch[data-value], .pen')) if (b.dataset.value !== 'transparent') b.style.color = S.ink(b.dataset.value, dark)
+    for (const b of all('.swatch[data-value]')) if (b.dataset.value !== 'transparent') b.style.color = S.ink(b.dataset.value, dark)
     updateContext()
     requestRender()
   }
@@ -720,19 +720,6 @@
   for (const b of all('.tool[data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool))
   $('#lockBtn').addEventListener('click', toggleLock)
 
-  // Marker pens in the rail: one tap sets the colour for whatever you're drawing or have selected.
-  function buildPens() {
-    const box = $('#pens')
-    STROKES.forEach((c, i) => {
-      const b = document.createElement('button')
-      b.type = 'button'; b.className = 'pen'; b.dataset.value = c
-      b.setAttribute('aria-label', `Marker colour ${i + 1}`)
-      b.title = `Colour ${i + 1}`
-      b.addEventListener('click', () => setStyle('stroke', c))
-      box.append(b)
-    })
-  }
-
   /* ---------- pointer input ---------- */
 
   const pointers = new Map()
@@ -1212,7 +1199,6 @@
 
     const stroke = valueOf('stroke')
     $('#ctxColor').style.color = stroke ? S.ink(stroke, dark) : 'transparent'
-    for (const p of all('.pen')) p.classList.toggle('is-on', p.dataset.value === stroke)
     for (const box of pop.querySelectorAll('[data-key]')) {
       const v = valueOf(box.dataset.key)
       if (box.classList.contains('range')) { box.value = String(Math.round((v ?? 1) * 100)); continue }
@@ -1733,7 +1719,6 @@
   /* ---------- start ---------- */
 
   buildSwatches()
-  buildPens()
   const startId = store.get(KEY.current)
   const first = (startId && loadDoc(startId)) || (store.get(KEY.index) || []).map(d => loadDoc(d.id)).find(Boolean)
   openDoc(first || { id: S.uid(), name: defaultName(), elements: [] })

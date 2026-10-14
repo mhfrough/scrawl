@@ -131,21 +131,22 @@
       <span class="rail-gap" aria-hidden="true"></span>
       <button class="tool tool-lock" type="button" id="lockBtn" data-icon="lock" aria-label="Keep the tool after drawing (Q)" aria-pressed="true"></button>
     </div>
-    <div class="rail-pens" id="pens" role="group" aria-label="Marker colour"></div>
-    <div class="rail-foot">
-      <button class="tool" id="undoBtn" type="button" data-icon="undo" aria-label="Undo (Ctrl Z)"></button>
-      <button class="tool" id="redoBtn" type="button" data-icon="redo" aria-label="Redo (Ctrl Shift Z)"></button>
-    </div>
   </nav>
 
   <header class="head">
-    <div class="title card">
-      <button class="doc-name" id="docName" type="button" title="Rename this drawing">Untitled</button>
-      <form class="doc-rename" id="renameForm" hidden>
-        <label class="sr-only" for="renameInput">Drawing name</label>
-        <input id="renameInput" maxlength="60" autocomplete="off" spellcheck="false">
-      </form>
-      <button class="icon-btn" id="drawingsBtn" type="button" data-icon="stack" aria-label="My drawings"></button>
+    <div class="head-left">
+      <div class="title card">
+        <button class="doc-name" id="docName" type="button" title="Rename this drawing">Untitled</button>
+        <form class="doc-rename" id="renameForm" hidden>
+          <label class="sr-only" for="renameInput">Drawing name</label>
+          <input id="renameInput" maxlength="60" autocomplete="off" spellcheck="false">
+        </form>
+        <button class="icon-btn" id="drawingsBtn" type="button" data-icon="stack" aria-label="My drawings"></button>
+      </div>
+      <div class="history card" role="group" aria-label="History">
+        <button class="icon-btn" id="undoBtn" type="button" data-icon="undo" aria-label="Undo (Ctrl Z)"></button>
+        <button class="icon-btn" id="redoBtn" type="button" data-icon="redo" aria-label="Redo (Ctrl Shift Z)"></button>
+      </div>
     </div>
     <div class="head-right">
       <p class="saved" id="savedNote" aria-live="polite">Saved</p>

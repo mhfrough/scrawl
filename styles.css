@@ -139,18 +139,6 @@ body[data-tool="eraser"] #canvas { cursor: cell; }
 .tool.is-active { background: var(--hi); color: var(--on-hi); }
 .tool:disabled { opacity: .3; cursor: default; background: transparent; transform: none; }
 .tool-lock[aria-pressed="true"] { color: var(--hi); }
-.rail-pens { display: grid; grid-template-columns: repeat(2, 22px); gap: 7px; margin-top: auto; padding: 6px 0; }
-/* Each colour sits in a disc one tone lighter than the rail, so even black ink shows. */
-.pen {
-  position: relative; width: 22px; height: 22px; border: 0; padding: 0; border-radius: 50%; flex: none;
-  background: var(--rail-2); transition: transform .15s var(--ease);
-}
-.pen::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: currentColor; }
-.pen:hover { transform: scale(1.18); }
-.pen.is-on { outline: 2px solid var(--hi); outline-offset: 3px; }
-.rail-foot { display: flex; gap: 0; }
-.rail-foot .tool { width: 30px; height: 36px; }
-.rail-foot .tool svg { width: 18px; height: 18px; }
 
 /* Head: title and export float over the page. */
 .head {
@@ -158,6 +146,7 @@ body[data-tool="eraser"] #canvas { cursor: cell; }
   display: flex; justify-content: space-between; align-items: center; gap: 12px; pointer-events: none;
 }
 .head > * { pointer-events: auto; }
+.head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .title { display: flex; align-items: center; gap: 2px; height: 46px; padding: 0 4px 0 6px; border-radius: 999px; min-width: 0; }
 .doc-name {
   border: 0; background: transparent; border-radius: 999px; padding: 8px 12px;
@@ -166,6 +155,8 @@ body[data-tool="eraser"] #canvas { cursor: cell; }
 }
 .doc-name:hover { background: var(--card-2); }
 .doc-rename input { width: 24ch; height: 36px; border: 0; border-radius: 999px; padding: 0 12px; background: var(--card-2); font-weight: 650; }
+.history { display: flex; align-items: center; height: 46px; padding: 0 4px; border-radius: 999px; flex: none; }
+.history .icon-btn:disabled { opacity: .3; cursor: default; background: transparent; transform: none; }
 .head-right { display: flex; align-items: center; gap: 12px; }
 .saved { font-size: var(--size-small); color: var(--muted); }
 .saved.is-busy { opacity: .55; }
@@ -412,16 +403,17 @@ body.is-dropping .drop-note { transform: none; }
   .rail-tools { flex-direction: row; gap: 0; }
   .rail-gap, .tool[data-tool="hand"], .tool[data-tool="line"], .tool[data-tool="diamond"], .tool-lock { display: none; }
   .tool { width: 35px; height: 42px; }
-  .rail-pens { display: none; }
-  .rail-foot {
-    position: fixed; left: var(--edge); bottom: calc(76px + env(safe-area-inset-bottom));
-    background: var(--rail); border-radius: 999px; padding: 4px;
-  }
   .head { left: var(--edge); }
   .saved { display: none; }
   .star-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .star { padding: 0 14px; }
   .doc-name { max-width: 14ch; }
+  .head { gap: 8px; }
+  /* My drawings is also in the menu; the name needs the room more on a phone. */
+  #drawingsBtn { display: none; }
+  .history .icon-btn { width: 32px; }
+  /* The word stays for screen readers; the picture icon carries it on screen. */
+  #exportBtn { font-size: 0; gap: 0; padding: 0 12px; }
   .zoom { bottom: calc(76px + env(safe-area-inset-bottom)); }
   .zoom #fitBtn { display: none; }
   .menu { left: var(--edge); right: var(--edge); top: auto; width: auto; bottom: calc(72px + env(safe-area-inset-bottom)); transform-origin: bottom left; }
