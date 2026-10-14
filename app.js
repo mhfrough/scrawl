@@ -1439,7 +1439,7 @@
 
   /* ---------- menu ---------- */
 
-  function openMenu() { loadStars(); $('#menu').hidden = false; $('#menuBtn').setAttribute('aria-expanded', 'true'); $('#gridItem').setAttribute('aria-pressed', String(prefs.grid)) }
+  function openMenu() { $('#menu').hidden = false; $('#menuBtn').setAttribute('aria-expanded', 'true'); $('#gridItem').setAttribute('aria-pressed', String(prefs.grid)) }
   function closeMenu() { $('#menu').hidden = true; $('#menuBtn').setAttribute('aria-expanded', 'false') }
   $('#menuBtn').addEventListener('click', e => { e.stopPropagation(); $('#menu').hidden ? openMenu() : closeMenu() })
   document.addEventListener('pointerdown', e => { if (!$('#menu').hidden && !e.target.closest('#menu, #menuBtn')) closeMenu() })
@@ -1463,26 +1463,29 @@
     else if (a === 'clear') clearCanvas()
   })
 
-  // Star count for the menu: fetched the first time the menu opens, and at most once an hour
-  // (GitHub allows 60 unauthenticated requests an hour). On any failure the count just stays hidden.
-  let starsAsked = false
+  // Shows the last known count straight away, then asks GitHub again if that count is over
+  // five minutes old or zero (at most 12 requests an hour; GitHub allows 60 without a token).
+  // On any failure the button simply has no count.
+  function showStars(n) {
+    const el = $('#starCount')
+    el.hidden = !(n > 0)
+    el.textContent = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n)
+    $('#starLink').setAttribute('aria-label', n > 0 ? `Star Scrawl on GitHub, ${n} ${n === 1 ? 'star' : 'stars'}` : 'Star Scrawl on GitHub')
+  }
+
   async function loadStars() {
-    if (starsAsked) return
-    starsAsked = true
-    const KEY = 'scrawl-stars', HOUR = 3600e3
-    let n = null
-    try { const c = JSON.parse(localStorage.getItem(KEY)); if (c && Date.now() - c.t < HOUR) n = c.n } catch {}
-    if (n === null) {
-      try {
-        const res = await fetch('https://api.github.com/repos/mhfrough/scrawl')
-        if (res.ok) n = (await res.json()).stargazers_count
-        if (typeof n === 'number') try { localStorage.setItem(KEY, JSON.stringify({ n, t: Date.now() })) } catch {}
-      } catch {}
-    }
-    if (typeof n !== 'number' || n < 1) return
-    $('#starCount').textContent = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n)
-    $('#starCount').hidden = false
-    $('#starLink').setAttribute('aria-label', `Star Scrawl on GitHub, ${n} ${n === 1 ? 'star' : 'stars'}`)
+    const KEY = 'scrawl-stars', FRESH = 5 * 60e3
+    let cached = null
+    try { cached = JSON.parse(localStorage.getItem(KEY)) } catch {}
+    if (cached && typeof cached.n === 'number') showStars(cached.n)
+    if (cached && cached.n > 0 && Date.now() - cached.t < FRESH) return
+    try {
+      const res = await fetch('https://api.github.com/repos/mhfrough/scrawl', { cache: 'no-store' })
+      const n = res.ok ? (await res.json()).stargazers_count : null
+      if (typeof n !== 'number') return
+      try { localStorage.setItem(KEY, JSON.stringify({ n, t: Date.now() })) } catch {}
+      showStars(n)
+    } catch {}
   }
 
   function toggleGrid() {
@@ -1723,6 +1726,7 @@
   const first = (startId && loadDoc(startId)) || (store.get(KEY.index) || []).map(d => loadDoc(d.id)).find(Boolean)
   openDoc(first || { id: S.uid(), name: defaultName(), elements: [] })
   applyTheme()
+  loadStars()
   setTool('select')
   $('#savedNote').textContent = 'Saved'
 
@@ -1738,7 +1742,4 @@
   addEventListener('pagehide', saveNow)
   document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow() })
 
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}))
-  }
 })()

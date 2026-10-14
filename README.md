@@ -1,6 +1,6 @@
 # Scrawl
 
-A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted paper, with no account and no server. It works offline and saves on your device.
+A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted paper, with no account and no server. It saves on your device.
 
 **Try it:** https://mhfrough.github.io/scrawl/
 
@@ -15,7 +15,6 @@ A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted 
 - **Saving.** Every change autosaves to the browser (`localStorage` for drawings, IndexedDB for pictures). *My drawings* keeps any number of pages with thumbnails.
 - **Files.** Save and open `.scrawl` files (plain JSON) and export PNG (1×–3×) or SVG, with or without paper, light or dark. You can also copy a PNG straight to the clipboard.
 - **Paper and theme.** Dotted, ruled or plain paper; light, dark or automatic theme. Dark mode flips each colour's lightness so drawings read the same on both.
-- **Offline.** It installs as a PWA, and once loaded it works with no connection.
 - **Phones.** Tools move to a bar along the bottom, and pinch zooms.
 
 ## Files
@@ -26,9 +25,9 @@ A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted 
 | `styles.css` | All styling (light and dark) |
 | `scene.js` | Element model, the marker look, hit testing, canvas and SVG renderers, input validation |
 | `app.js` | The editor: tools, selection, history, autosave, drawings list, export, shortcuts |
-| `sw.js`, `manifest.json`, `icon.svg` | Offline support and install |
+| `icon.svg` | Favicon |
 
-There are no dependencies and no build step. The only things fetched from elsewhere are two Google Fonts (Bricolage Grotesque and Shantell Sans), and the app falls back to system fonts without them. The menu also shows the repo's star count from the GitHub API (`api.github.com`), fetched when you first open the menu and at most once an hour.
+There are no dependencies and no build step. The only things fetched from elsewhere are two Google Fonts (Bricolage Grotesque and Shantell Sans), and the app falls back to system fonts without them. The header also shows the repo's star count from the GitHub API (`api.github.com`), refreshed at most every five minutes.
 
 ## Run it
 
