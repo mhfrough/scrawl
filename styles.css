@@ -1,5 +1,8 @@
 /* Scrawl: a sketchbook page, an ink-black pencil case, and one highlighter yellow.
  * Cards that float over the drawing are the only things that cast a shadow. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("assets/fonts/BricolageGrotesque-Variable.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: "Shantell Sans"; src: url("assets/fonts/ShantellSans-Variable.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+
 :root {
   --paper: #f7f6f1;
   --card: #ffffff;
@@ -416,7 +419,7 @@ body.is-dropping .drop-note { transform: none; }
   }
   .head { left: var(--edge); }
   .saved { display: none; }
-  .star-text { display: none; }
+  .star-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .star { padding: 0 14px; }
   .doc-name { max-width: 14ch; }
   .zoom { bottom: calc(76px + env(safe-area-inset-bottom)); }

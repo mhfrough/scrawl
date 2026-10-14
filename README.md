@@ -11,6 +11,7 @@ A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted 
 - **Pen and highlighter.** The pen draws a tapered, pressure-like line. The highlighter is translucent and blends with what's under it.
 - **Text.** Handwritten or print lettering in four sizes. Double-click anywhere to write, or double-click a shape to label it.
 - **Pictures.** Drag a photo onto the page, paste one, or use the picture button (`I`). Each one is held on with a strip of torn tape, which you can switch off. Big photos are scaled down to 2400px. Pictures are kept in the browser's IndexedDB, travel inside `.scrawl` files, and appear in PNG and SVG exports.
+- **Draw again and again.** The tool you pick stays on, so you can draw line after line. Press `Q` (the lock in the rail) to go back to Select after each shape instead.
 - **Editing.** Select, multi-select (Shift or drag a box), move, resize, Alt-drag to duplicate, layer order, copy and paste, undo and redo, zoom and pan, snap to the dots.
 - **Saving.** Every change autosaves to the browser (`localStorage` for drawings, IndexedDB for pictures). *My drawings* keeps any number of pages with thumbnails.
 - **Files.** Save and open `.scrawl` files (plain JSON) and export PNG (1×–3×) or SVG, with or without paper, light or dark. You can also copy a PNG straight to the clipboard.
@@ -26,8 +27,10 @@ A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted 
 | `scene.js` | Element model, the marker look, hit testing, canvas and SVG renderers, input validation |
 | `app.js` | The editor: tools, selection, history, autosave, drawings list, export, shortcuts |
 | `icon.svg` | Favicon |
+| `assets/fonts/` | Bricolage Grotesque and Shantell Sans (SIL OFL 1.1, licences alongside) |
+| `assets/og-image.jpg`, `robots.txt`, `sitemap.xml` | Share card and search engine files |
 
-There are no dependencies and no build step. The only things fetched from elsewhere are two Google Fonts (Bricolage Grotesque and Shantell Sans), and the app falls back to system fonts without them. The header also shows the repo's star count from the GitHub API (`api.github.com`), refreshed at most every five minutes.
+There are no dependencies and no build step. Both fonts (Bricolage Grotesque and Shantell Sans) are served from `assets/fonts/`. Exported SVGs link to the same fonts on Google Fonts so they render anywhere. The header also shows the repo's star count from the GitHub API (`api.github.com`), refreshed at most every five minutes.
 
 ## Run it
 

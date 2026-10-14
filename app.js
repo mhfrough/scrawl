@@ -113,9 +113,9 @@
     del(k) { try { localStorage.removeItem(k) } catch { /* ignore */ } },
   }
 
-  const prefs = Object.assign({ theme: 'system', grid: false, paper: 'dots' }, store.get(KEY.prefs) || {})
+  const prefs = Object.assign({ theme: 'system', grid: false, paper: 'dots', keepTool: true }, store.get(KEY.prefs) || {})
   const style = Object.assign({}, DEFAULT_STYLE, prefs.style || {})
-  const savePrefs = () => store.set(KEY.prefs, { theme: prefs.theme, grid: prefs.grid, paper: prefs.paper, style })
+  const savePrefs = () => store.set(KEY.prefs, { theme: prefs.theme, grid: prefs.grid, paper: prefs.paper, keepTool: prefs.keepTool, style })
 
   /* ---------- state ---------- */
 
@@ -123,7 +123,7 @@
   const view = { ox: 0, oy: 0, zoom: 1 }
   let selected = new Set()
   let tool = 'select'
-  let locked = false
+  let locked = prefs.keepTool !== false   // keep drawing with the same tool until you pick another
   let dark = false
   let drag = null
   let editing = null
@@ -363,6 +363,7 @@
     index.unshift({ id: doc.id, name: doc.name, updated, count: doc.elements.length })
     store.set(KEY.index, index)
     store.set(KEY.current, doc.id)
+    renderTitle()
     const note = $('#savedNote')
     note.classList.remove('is-busy')
     note.textContent = ok ? 'Saved' : 'Not saved: storage full'
@@ -444,9 +445,14 @@
     collectGarbage()
   }
 
+  // An empty page keeps the site's own title (it's what search engines and link previews read);
+  // once there's a drawing, the tab shows its name.
+  const SITE_TITLE = document.title
+  function renderTitle() { document.title = doc.elements.length ? `${doc.name} · Scrawl` : SITE_TITLE }
+
   function renderName() {
     $('#docName').textContent = doc.name
-    document.title = `${doc.name} · Scrawl`
+    renderTitle()
   }
 
   $('#docName').addEventListener('click', () => {
@@ -696,13 +702,20 @@
     requestRender()
   }
 
-  function toggleLock() {
-    locked = !locked
+  function renderLock() {
     const b = $('#lockBtn')
     b.setAttribute('aria-pressed', String(locked))
     b.innerHTML = icon(locked ? 'lock' : 'lockopen')
+  }
+
+  function toggleLock() {
+    locked = !locked
+    prefs.keepTool = locked
+    savePrefs()
+    renderLock()
     toast(locked ? 'Tool stays on after each drawing' : 'Back to select after each drawing')
   }
+  renderLock()
 
   for (const b of all('.tool[data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool))
   $('#lockBtn').addEventListener('click', toggleLock)
@@ -1470,7 +1483,6 @@
     const el = $('#starCount')
     el.hidden = !(n > 0)
     el.textContent = n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n)
-    $('#starLink').setAttribute('aria-label', n > 0 ? `Star Scrawl on GitHub, ${n} ${n === 1 ? 'star' : 'stars'}` : 'Star Scrawl on GitHub')
   }
 
   async function loadStars() {

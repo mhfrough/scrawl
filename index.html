@@ -5,17 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#1d1d1b">
-  <meta name="description" content="Scrawl is a marker-and-sketchbook whiteboard that runs in your browser. Sketch diagrams, flows and wireframes. No account, saves on your device.">
-  <meta property="og:title" content="Scrawl: a sketchbook in your browser">
-  <meta property="og:description" content="Felt-tip diagrams on dotted paper. No account, saves on your device.">
+  <title>Scrawl | A sketchbook whiteboard in your browser</title>
+  <meta name="description" content="Scrawl is a marker-and-sketchbook whiteboard that runs in your browser. Sketch diagrams, flows and wireframes with felt-tip strokes on dotted paper. No account, saves on your device.">
+  <meta name="author" content="Mohammad Hamza">
+  <meta name="keywords" content="whiteboard, online whiteboard, sketch diagrams, hand-drawn diagrams, flowchart maker, wireframe sketch, drawing app, free whiteboard, no sign-up">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mhfrough.github.io/scrawl/">
+  <!-- Social cards. The share image stays JPG on purpose: not every social crawler renders WebP. -->
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Scrawl">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://mhfrough.github.io/scrawl/">
+  <meta property="og:title" content="Scrawl: a sketchbook in your browser">
+  <meta property="og:description" content="Felt-tip diagrams, flows and wireframes on dotted paper. No account, saves on your device.">
+  <meta property="og:image" content="https://mhfrough.github.io/scrawl/assets/og-image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Scrawl: a sketchbook in your browser. A hand-drawn flow from Idea to Sketch to Ship.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Scrawl: a sketchbook in your browser">
+  <meta name="twitter:description" content="Felt-tip diagrams, flows and wireframes on dotted paper. No account, saves on your device.">
+  <meta name="twitter:image" content="https://mhfrough.github.io/scrawl/assets/og-image.jpg">
+  <meta name="twitter:image:alt" content="Scrawl: a sketchbook in your browser. A hand-drawn flow from Idea to Sketch to Ship.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://mhfrough.github.io/scrawl/#app",
+        "name": "Scrawl",
+        "description": "Scrawl is a marker-and-sketchbook whiteboard that runs in your browser. Sketch diagrams, flows and wireframes with felt-tip strokes on dotted paper. No account, saves on your device.",
+        "applicationCategory": "DesignApplication",
+        "operatingSystem": "Any (runs in a web browser)",
+        "browserRequirements": "Requires a current Chrome, Edge, Firefox or Safari",
+        "url": "https://mhfrough.github.io/scrawl/",
+        "codeRepository": "https://github.com/mhfrough/scrawl",
+        "image": "https://mhfrough.github.io/scrawl/assets/og-image.jpg",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Hand-drawn boxes, circles, diamonds, arrows and lines",
+          "Pen and highlighter",
+          "Pictures held on with tape",
+          "Export PNG and SVG",
+          "Autosaves in the browser, no account"
+        ],
+        "author": {
+          "@id": "https://mhfrough.github.io/scrawl/#author"
+        }
+      },
+      {
+        "@type": "Person",
+        "name": "Mohammad Hamza",
+        "url": "https://github.com/mhfrough",
+        "sameAs": [
+          "https://github.com/mhfrough"
+        ],
+        "@id": "https://mhfrough.github.io/scrawl/#author"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://mhfrough.github.io/scrawl/#website",
+        "name": "Scrawl",
+        "url": "https://mhfrough.github.io/scrawl/",
+        "inLanguage": "en",
+        "publisher": {
+          "@id": "https://mhfrough.github.io/scrawl/#author"
+        }
+      }
+    ]
+  }
+  </script>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Shantell+Sans:wght@400;600;700;800&display=swap">
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/BricolageGrotesque-Variable.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/ShantellSans-Variable.woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
-  <title>Scrawl</title>
 </head>
 <body>
   <h1 class="sr-only">Scrawl sketchbook</h1>
@@ -57,7 +129,7 @@
       <button class="tool" type="button" id="imageBtn" data-icon="image" aria-label="Add a picture (I), or drop one on the page"></button>
       <button class="tool" type="button" data-tool="eraser" data-icon="eraser" aria-label="Eraser (E)"></button>
       <span class="rail-gap" aria-hidden="true"></span>
-      <button class="tool tool-lock" type="button" id="lockBtn" data-icon="lockopen" aria-label="Keep the tool after drawing (Q)" aria-pressed="false"></button>
+      <button class="tool tool-lock" type="button" id="lockBtn" data-icon="lock" aria-label="Keep the tool after drawing (Q)" aria-pressed="true"></button>
     </div>
     <div class="rail-pens" id="pens" role="group" aria-label="Marker colour"></div>
     <div class="rail-foot">
@@ -77,7 +149,7 @@
     </div>
     <div class="head-right">
       <p class="saved" id="savedNote" aria-live="polite">Saved</p>
-      <a class="star card" id="starLink" href="https://github.com/mhfrough/scrawl" target="_blank" rel="noopener" aria-label="Star Scrawl on GitHub"><svg class="gh" viewBox="0 0 256 256" aria-hidden="true"><path d="M208.31 75.68A59.78 59.78 0 0 0 202.93 28 8 8 0 0 0 196 24a59.75 59.75 0 0 0-48 24h-24a59.75 59.75 0 0 0-48-24 8 8 0 0 0-6.93 4 59.78 59.78 0 0 0-5.38 47.68A58.14 58.14 0 0 0 56 104v8a56.06 56.06 0 0 0 48.44 55.47A39.8 39.8 0 0 0 96 192v8H72a24 24 0 0 1-24-24 40 40 0 0 0-40-40 8 8 0 0 0 0 16 24 24 0 0 1 24 24 40 40 0 0 0 40 40h24v16a8 8 0 0 0 16 0v-40a24 24 0 0 1 48 0v40a8 8 0 0 0 16 0v-40a39.8 39.8 0 0 0-8.44-24.53A56.06 56.06 0 0 0 216 112v-8a58.14 58.14 0 0 0-7.69-28.32ZM200 112a40 40 0 0 1-40 40h-48a40 40 0 0 1-40-40v-8a41.74 41.74 0 0 1 6.9-22.48 8 8 0 0 0 1.1-7.69 43.81 43.81 0 0 1 .79-33.58 43.88 43.88 0 0 1 32.32 20.06 8 8 0 0 0 6.71 3.69h32.35a8 8 0 0 0 6.74-3.69 43.87 43.87 0 0 1 32.32-20.06 43.81 43.81 0 0 1 .77 33.58 8.09 8.09 0 0 0 1 7.65 41.72 41.72 0 0 1 7 22.52Z"/></svg><span class="star-text">Star</span><span class="tally" id="starCount" hidden></span></a>
+      <a class="star card" id="starLink" href="https://github.com/mhfrough/scrawl" target="_blank" rel="noopener"><svg class="gh" viewBox="0 0 256 256" aria-hidden="true"><path d="M208.31 75.68A59.78 59.78 0 0 0 202.93 28 8 8 0 0 0 196 24a59.75 59.75 0 0 0-48 24h-24a59.75 59.75 0 0 0-48-24 8 8 0 0 0-6.93 4 59.78 59.78 0 0 0-5.38 47.68A58.14 58.14 0 0 0 56 104v8a56.06 56.06 0 0 0 48.44 55.47A39.8 39.8 0 0 0 96 192v8H72a24 24 0 0 1-24-24 40 40 0 0 0-40-40 8 8 0 0 0 0 16 24 24 0 0 1 24 24 40 40 0 0 0 40 40h24v16a8 8 0 0 0 16 0v-40a24 24 0 0 1 48 0v40a8 8 0 0 0 16 0v-40a39.8 39.8 0 0 0-8.44-24.53A56.06 56.06 0 0 0 216 112v-8a58.14 58.14 0 0 0-7.69-28.32ZM200 112a40 40 0 0 1-40 40h-48a40 40 0 0 1-40-40v-8a41.74 41.74 0 0 1 6.9-22.48 8 8 0 0 0 1.1-7.69 43.81 43.81 0 0 1 .79-33.58 43.88 43.88 0 0 1 32.32 20.06 8 8 0 0 0 6.71 3.69h32.35a8 8 0 0 0 6.74-3.69 43.87 43.87 0 0 1 32.32-20.06 43.81 43.81 0 0 1 .77 33.58 8.09 8.09 0 0 0 1 7.65 41.72 41.72 0 0 1 7 22.52Z"/></svg><span class="star-text">Star</span><span class="sr-only"> Scrawl on GitHub</span><span class="tally" id="starCount" hidden></span></a>
       <button class="btn btn-hi" id="exportBtn" type="button" data-icon="image">Export</button>
     </div>
   </header>
@@ -319,7 +391,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <noscript><p class="noscript">Scrawl needs JavaScript to draw.</p></noscript>
 
-  <script src="scene.js"></script>
-  <script src="app.js"></script>
+  <script src="scene.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
