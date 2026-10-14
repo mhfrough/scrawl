@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#1d1d1b">
+  <meta name="description" content="Scrawl is a marker-and-sketchbook whiteboard that runs in your browser. Sketch diagrams, flows and wireframes. No account, works offline, saves on your device.">
+  <meta property="og:title" content="Scrawl: a sketchbook in your browser">
+  <meta property="og:description" content="Felt-tip diagrams on dotted paper. No account, works offline, saves on your device.">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Shantell+Sans:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <title>Scrawl</title>
+</head>
+<body>
+  <h1 class="sr-only">Scrawl sketchbook</h1>
+
+  <canvas id="canvas" aria-label="Sketchbook page" role="img"></canvas>
+  <textarea id="textEditor" class="text-editor" hidden spellcheck="false" autocomplete="off" aria-label="Text"></textarea>
+
+  <aside class="note" id="emptyNote" aria-label="Getting started">
+    <p class="note-title">A blank page.</p>
+    <p class="mouse-only">Pick a marker from the rail and draw. Double-click anywhere to write.</p>
+    <p class="touch-only">Pick a marker below and draw with your finger. Pinch to zoom, two fingers to move around.</p>
+    <ul class="note-keys mouse-only">
+      <li><kbd>R</kbd> box</li>
+      <li><kbd>O</kbd> circle</li>
+      <li><kbd>A</kbd> arrow</li>
+      <li><kbd>P</kbd> pen</li>
+      <li><kbd>M</kbd> highlighter</li>
+      <li><kbd>I</kbd> picture</li>
+    </ul>
+    <p class="note-foot mouse-only">Drop pictures straight onto the page. Saved in this browser, works offline.</p>
+    <p class="note-foot touch-only">Saved in this browser. Works offline.</p>
+  </aside>
+
+  <nav class="rail" aria-label="Tools">
+    <button class="rail-mark" id="menuBtn" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false">S</button>
+    <div class="rail-tools" role="toolbar" aria-label="Drawing tools" aria-orientation="vertical">
+      <button class="tool" type="button" data-tool="select" data-icon="select" aria-label="Select (V)"></button>
+      <button class="tool" type="button" data-tool="hand" data-icon="hand" aria-label="Move the page (H, or hold Space)"></button>
+      <span class="rail-gap" aria-hidden="true"></span>
+      <button class="tool" type="button" data-tool="rect" data-icon="rect" aria-label="Box (R)"></button>
+      <button class="tool" type="button" data-tool="ellipse" data-icon="ellipse" aria-label="Circle (O)"></button>
+      <button class="tool" type="button" data-tool="diamond" data-icon="diamond" aria-label="Diamond (D)"></button>
+      <button class="tool" type="button" data-tool="arrow" data-icon="arrow" aria-label="Arrow (A)"></button>
+      <button class="tool" type="button" data-tool="line" data-icon="line" aria-label="Line (L)"></button>
+      <span class="rail-gap" aria-hidden="true"></span>
+      <button class="tool" type="button" data-tool="draw" data-icon="draw" aria-label="Pen (P)"></button>
+      <button class="tool" type="button" data-tool="mark" data-icon="mark" aria-label="Highlighter (M)"></button>
+      <button class="tool" type="button" data-tool="text" data-icon="text" aria-label="Text (T)"></button>
+      <button class="tool" type="button" id="imageBtn" data-icon="image" aria-label="Add a picture (I), or drop one on the page"></button>
+      <button class="tool" type="button" data-tool="eraser" data-icon="eraser" aria-label="Eraser (E)"></button>
+      <span class="rail-gap" aria-hidden="true"></span>
+      <button class="tool tool-lock" type="button" id="lockBtn" data-icon="lockopen" aria-label="Keep the tool after drawing (Q)" aria-pressed="false"></button>
+    </div>
+    <div class="rail-pens" id="pens" role="group" aria-label="Marker colour"></div>
+    <div class="rail-foot">
+      <button class="tool" id="undoBtn" type="button" data-icon="undo" aria-label="Undo (Ctrl Z)"></button>
+      <button class="tool" id="redoBtn" type="button" data-icon="redo" aria-label="Redo (Ctrl Shift Z)"></button>
+    </div>
+  </nav>
+
+  <header class="head">
+    <div class="title card">
+      <button class="doc-name" id="docName" type="button" title="Rename this drawing">Untitled</button>
+      <form class="doc-rename" id="renameForm" hidden>
+        <label class="sr-only" for="renameInput">Drawing name</label>
+        <input id="renameInput" maxlength="60" autocomplete="off" spellcheck="false">
+      </form>
+      <button class="icon-btn" id="drawingsBtn" type="button" data-icon="stack" aria-label="My drawings"></button>
+    </div>
+    <div class="head-right">
+      <p class="saved" id="savedNote" aria-live="polite">Saved</p>
+      <button class="btn btn-hi" id="exportBtn" type="button" data-icon="image">Export</button>
+    </div>
+  </header>
+
+  <div class="ctxbar card" id="ctxbar" role="toolbar" aria-label="Style" hidden>
+    <button class="ctx" type="button" data-pop="color" aria-label="Colour"><span class="ctx-dot" id="ctxColor"></span></button>
+    <button class="ctx" type="button" data-pop="fill" data-icon="fill" aria-label="Fill"></button>
+    <button class="ctx" type="button" data-pop="stroke" data-icon="w2" aria-label="Stroke"></button>
+    <button class="ctx" type="button" data-pop="ends" data-icon="headtri" aria-label="Arrowheads"></button>
+    <button class="ctx ctx-text" type="button" data-pop="text" aria-label="Text style">Aa</button>
+    <button class="ctx" type="button" data-pop="tape" data-icon="tape" aria-label="Tape"></button>
+    <button class="ctx" type="button" data-pop="opacity" data-icon="opacity" aria-label="Opacity"></button>
+    <span class="ctx-sep" data-sel aria-hidden="true"></span>
+    <button class="ctx" type="button" data-sel data-do="front" data-icon="toFront" aria-label="Bring to front (Ctrl Shift ])"></button>
+    <button class="ctx" type="button" data-sel data-do="back" data-icon="toBack" aria-label="Send to back (Ctrl Shift [)"></button>
+    <button class="ctx" type="button" data-sel data-do="duplicate" data-icon="duplicate" aria-label="Duplicate (Ctrl D)"></button>
+    <button class="ctx is-danger" type="button" data-sel data-do="delete" data-icon="trash" aria-label="Delete (Delete)"></button>
+  </div>
+
+  <div class="pop card" id="pop" hidden>
+    <section data-group="color">
+      <h2>Colour</h2>
+      <div class="swatches" data-key="stroke"></div>
+    </section>
+    <section data-group="fill">
+      <h2>Fill colour</h2>
+      <div class="swatches" data-key="bg"></div>
+      <h2>Fill style</h2>
+      <div class="seg" data-key="fill">
+        <button type="button" data-value="offset">Offset</button>
+        <button type="button" data-value="solid">Solid</button>
+        <button type="button" data-value="dots">Dots</button>
+      </div>
+    </section>
+    <section data-group="stroke">
+      <h2>Thickness</h2>
+      <div class="seg" data-key="width">
+        <button type="button" data-value="1" data-icon="w1" aria-label="Fine"></button>
+        <button type="button" data-value="2" data-icon="w2" aria-label="Medium"></button>
+        <button type="button" data-value="4" data-icon="w4" aria-label="Broad"></button>
+      </div>
+      <h2 data-only="dash">Line</h2>
+      <div class="seg" data-key="dash" data-only="dash">
+        <button type="button" data-value="solid" data-icon="solidline" aria-label="Solid"></button>
+        <button type="button" data-value="dashed" data-icon="dashed" aria-label="Dashed"></button>
+        <button type="button" data-value="dotted" data-icon="dotted" aria-label="Dotted"></button>
+      </div>
+      <h2 data-only="rough">Hand</h2>
+      <div class="seg" data-key="rough" data-only="rough">
+        <button type="button" data-value="0">Steady</button>
+        <button type="button" data-value="1">Loose</button>
+        <button type="button" data-value="2">Wild</button>
+      </div>
+      <h2 data-only="round">Corners</h2>
+      <div class="seg" data-key="round" data-only="round">
+        <button type="button" data-value="false" data-icon="sharp" aria-label="Sharp"></button>
+        <button type="button" data-value="true" data-icon="rounded" aria-label="Round"></button>
+      </div>
+    </section>
+    <section data-group="ends">
+      <h2>Start</h2>
+      <div class="seg" data-key="start">
+        <button type="button" data-value="none" data-icon="headnone" aria-label="Nothing"></button>
+        <button type="button" data-value="arrow" data-icon="headstart" aria-label="Open arrow"></button>
+        <button type="button" data-value="triangle" data-icon="headstarttri" aria-label="Solid arrow"></button>
+        <button type="button" data-value="dot" data-icon="headdot" aria-label="Dot"></button>
+      </div>
+      <h2>End</h2>
+      <div class="seg" data-key="end">
+        <button type="button" data-value="none" data-icon="headnone" aria-label="Nothing"></button>
+        <button type="button" data-value="arrow" data-icon="headend" aria-label="Open arrow"></button>
+        <button type="button" data-value="triangle" data-icon="headtri" aria-label="Solid arrow"></button>
+        <button type="button" data-value="dot" data-icon="headenddot" aria-label="Dot"></button>
+      </div>
+    </section>
+    <section data-group="text">
+      <h2>Lettering</h2>
+      <div class="seg" data-key="font">
+        <button type="button" data-value="hand" class="font-hand">Hand</button>
+        <button type="button" data-value="sans" class="font-sans">Print</button>
+      </div>
+      <h2>Size</h2>
+      <div class="seg" data-key="fontSize">
+        <button type="button" data-value="16">S</button>
+        <button type="button" data-value="24">M</button>
+        <button type="button" data-value="36">L</button>
+        <button type="button" data-value="56">XL</button>
+      </div>
+      <h2>Align</h2>
+      <div class="seg" data-key="align">
+        <button type="button" data-value="left" data-icon="alignl" aria-label="Left"></button>
+        <button type="button" data-value="center" data-icon="alignc" aria-label="Centre"></button>
+        <button type="button" data-value="right" data-icon="alignr" aria-label="Right"></button>
+      </div>
+    </section>
+    <section data-group="tape">
+      <h2>Tape</h2>
+      <div class="seg" data-key="tape">
+        <button type="button" data-value="true">Taped</button>
+        <button type="button" data-value="false">Bare</button>
+      </div>
+    </section>
+    <section data-group="opacity">
+      <h2>Opacity</h2>
+      <input class="range" type="range" min="10" max="100" step="5" data-key="opacity" aria-label="Opacity">
+    </section>
+  </div>
+
+  <div class="zoom card" role="group" aria-label="Zoom">
+    <button class="icon-btn" id="zoomOut" type="button" data-icon="minus" aria-label="Zoom out (Ctrl -)"></button>
+    <button class="zoom-level" id="zoomReset" type="button" title="Reset zoom (Ctrl 0)">100%</button>
+    <button class="icon-btn" id="zoomIn" type="button" data-icon="plus" aria-label="Zoom in (Ctrl +)"></button>
+    <button class="icon-btn" id="fitBtn" type="button" data-icon="fit" aria-label="Fit everything (Shift 1)"></button>
+  </div>
+
+  <nav class="menu card" id="menu" aria-label="Menu" hidden>
+    <p class="menu-brand">Scrawl</p>
+    <button class="menu-item" type="button" data-action="new" data-icon="plus">New page</button>
+    <button class="menu-item" type="button" data-action="drawings" data-icon="stack">My drawings</button>
+    <button class="menu-item" type="button" data-action="open" data-icon="folder">Open file…<span class="hint">Ctrl O</span></button>
+    <button class="menu-item" type="button" data-action="save" data-icon="download">Save to file<span class="hint">Ctrl S</span></button>
+    <button class="menu-item" type="button" data-action="export" data-icon="image">Export image…<span class="hint">Ctrl Shift E</span></button>
+    <div class="menu-row">
+      <span>Paper</span>
+      <div class="seg" id="paperSeg">
+        <button type="button" data-paper="dots">Dots</button>
+        <button type="button" data-paper="ruled">Ruled</button>
+        <button type="button" data-paper="plain">Plain</button>
+      </div>
+    </div>
+    <div class="menu-row">
+      <span>Theme</span>
+      <div class="seg" id="themeSeg">
+        <button type="button" data-theme="light">Light</button>
+        <button type="button" data-theme="dark">Dark</button>
+        <button type="button" data-theme="system">Auto</button>
+      </div>
+    </div>
+    <button class="menu-item" type="button" data-action="grid" data-icon="grid" id="gridItem" aria-pressed="false">Snap to grid<span class="hint">Ctrl '</span></button>
+    <button class="menu-item" type="button" data-action="help" data-icon="help">Shortcuts<span class="hint">?</span></button>
+    <button class="menu-item is-danger" type="button" data-action="clear" data-icon="trash">Clear page</button>
+    <div class="menu-sign">
+      <a class="menu-item" id="starLink" href="https://github.com/mhfrough/scrawl" target="_blank" rel="noopener" ><svg class="gh" viewBox="0 0 256 256" aria-hidden="true"><path d="M208.31 75.68A59.78 59.78 0 0 0 202.93 28 8 8 0 0 0 196 24a59.75 59.75 0 0 0-48 24h-24a59.75 59.75 0 0 0-48-24 8 8 0 0 0-6.93 4 59.78 59.78 0 0 0-5.38 47.68A58.14 58.14 0 0 0 56 104v8a56.06 56.06 0 0 0 48.44 55.47A39.8 39.8 0 0 0 96 192v8H72a24 24 0 0 1-24-24 40 40 0 0 0-40-40 8 8 0 0 0 0 16 24 24 0 0 1 24 24 40 40 0 0 0 40 40h24v16a8 8 0 0 0 16 0v-40a24 24 0 0 1 48 0v40a8 8 0 0 0 16 0v-40a39.8 39.8 0 0 0-8.44-24.53A56.06 56.06 0 0 0 216 112v-8a58.14 58.14 0 0 0-7.69-28.32ZM200 112a40 40 0 0 1-40 40h-48a40 40 0 0 1-40-40v-8a41.74 41.74 0 0 1 6.9-22.48 8 8 0 0 0 1.1-7.69 43.81 43.81 0 0 1 .79-33.58 43.88 43.88 0 0 1 32.32 20.06 8 8 0 0 0 6.71 3.69h32.35a8 8 0 0 0 6.74-3.69 43.87 43.87 0 0 1 32.32-20.06 43.81 43.81 0 0 1 .77 33.58 8.09 8.09 0 0 0 1 7.65 41.72 41.72 0 0 1 7 22.52Z"/></svg>Star on GitHub<span class="tally" id="starCount" hidden></span></a>
+      <a class="sign" href="https://github.com/mhfrough" target="_blank" rel="noopener">
+        <span class="sign-by">Made by</span>
+        <span class="sign-name">Mohammad Hamza</span>
+        <span class="sign-user"><svg class="gh" viewBox="0 0 256 256" aria-hidden="true"><path d="M208.31 75.68A59.78 59.78 0 0 0 202.93 28 8 8 0 0 0 196 24a59.75 59.75 0 0 0-48 24h-24a59.75 59.75 0 0 0-48-24 8 8 0 0 0-6.93 4 59.78 59.78 0 0 0-5.38 47.68A58.14 58.14 0 0 0 56 104v8a56.06 56.06 0 0 0 48.44 55.47A39.8 39.8 0 0 0 96 192v8H72a24 24 0 0 1-24-24 40 40 0 0 0-40-40 8 8 0 0 0 0 16 24 24 0 0 1 24 24 40 40 0 0 0 40 40h24v16a8 8 0 0 0 16 0v-40a24 24 0 0 1 48 0v40a8 8 0 0 0 16 0v-40a39.8 39.8 0 0 0-8.44-24.53A56.06 56.06 0 0 0 216 112v-8a58.14 58.14 0 0 0-7.69-28.32ZM200 112a40 40 0 0 1-40 40h-48a40 40 0 0 1-40-40v-8a41.74 41.74 0 0 1 6.9-22.48 8 8 0 0 0 1.1-7.69 43.81 43.81 0 0 1 .79-33.58 43.88 43.88 0 0 1 32.32 20.06 8 8 0 0 0 6.71 3.69h32.35a8 8 0 0 0 6.74-3.69 43.87 43.87 0 0 1 32.32-20.06 43.81 43.81 0 0 1 .77 33.58 8.09 8.09 0 0 0 1 7.65 41.72 41.72 0 0 1 7 22.52Z"/></svg>mhfrough</span>
+      </a>
+    </div>
+  </nav>
+
+  <dialog class="sheet sheet-wide" id="drawingsDialog" aria-labelledby="drawingsTitle">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="drawingsTitle">My drawings</h2>
+        <button class="btn btn-hi" type="button" id="newFromList" data-icon="plus">New page</button>
+      </div>
+      <p class="sheet-note">These live in this browser on this device. Save to a file to take one elsewhere.</p>
+      <ul class="drawings" id="drawingsList"></ul>
+      <div class="sheet-actions"><button class="btn btn-soft" type="button" data-close>Close</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet sheet-wide" id="exportDialog" aria-labelledby="exportTitle">
+    <div class="sheet-inner">
+      <h2 id="exportTitle">Export image</h2>
+      <div class="export-preview" id="exportPreview"></div>
+      <div class="export-options">
+        <label class="check"><input type="checkbox" id="expBg" checked> Paper</label>
+        <label class="check"><input type="checkbox" id="expDark"> Dark</label>
+        <label class="check" id="expSelWrap"><input type="checkbox" id="expSel"> Selection only</label>
+        <div class="seg" id="expScale" role="group" aria-label="PNG size">
+          <button type="button" data-value="1">1×</button>
+          <button type="button" data-value="2">2×</button>
+          <button type="button" data-value="3">3×</button>
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-hi" type="button" id="expPng">Download PNG</button>
+        <button class="btn btn-soft" type="button" id="expSvg">Download SVG</button>
+        <button class="btn btn-soft" type="button" id="expCopy">Copy PNG</button>
+        <button class="btn btn-text push" type="button" data-close>Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet sheet-wide" id="helpDialog" aria-labelledby="helpTitle">
+    <div class="sheet-inner">
+      <h2 id="helpTitle">Shortcuts</h2>
+      <div class="keys">
+        <dl>
+          <div><dt>Select</dt><dd><kbd>V</kbd></dd></div>
+          <div><dt>Move the page</dt><dd><kbd>H</kbd> or hold <kbd>Space</kbd></dd></div>
+          <div><dt>Box</dt><dd><kbd>R</kbd></dd></div>
+          <div><dt>Circle</dt><dd><kbd>O</kbd></dd></div>
+          <div><dt>Diamond</dt><dd><kbd>D</kbd></dd></div>
+          <div><dt>Arrow</dt><dd><kbd>A</kbd></dd></div>
+          <div><dt>Line</dt><dd><kbd>L</kbd></dd></div>
+          <div><dt>Pen</dt><dd><kbd>P</kbd></dd></div>
+          <div><dt>Highlighter</dt><dd><kbd>M</kbd></dd></div>
+          <div><dt>Text</dt><dd><kbd>T</kbd> or double-click</dd></div>
+          <div><dt>Eraser</dt><dd><kbd>E</kbd></dd></div>
+          <div><dt>Picture</dt><dd><kbd>I</kbd>, drop or paste</dd></div>
+          <div><dt>Keep tool</dt><dd><kbd>Q</kbd></dd></div>
+        </dl>
+        <dl>
+          <div><dt>Undo / redo</dt><dd><kbd>Ctrl Z</kbd> <kbd>Ctrl Shift Z</kbd></dd></div>
+          <div><dt>Copy / paste</dt><dd><kbd>Ctrl C</kbd> <kbd>Ctrl V</kbd></dd></div>
+          <div><dt>Duplicate</dt><dd><kbd>Ctrl D</kbd> or <kbd>Alt</kbd>-drag</dd></div>
+          <div><dt>Select all</dt><dd><kbd>Ctrl A</kbd></dd></div>
+          <div><dt>Delete</dt><dd><kbd>Delete</kbd></dd></div>
+          <div><dt>Nudge</dt><dd>Arrow keys, <kbd>Shift</kbd> for 10px</dd></div>
+          <div><dt>Straight / square</dt><dd>Hold <kbd>Shift</kbd></dd></div>
+          <div><dt>Zoom</dt><dd><kbd>Ctrl</kbd> + scroll</dd></div>
+          <div><dt>Fit everything</dt><dd><kbd>Shift 1</kbd></dd></div>
+          <div><dt>Marker colours</dt><dd><kbd>1</kbd> to <kbd>6</kbd></dd></div>
+          <div><dt>Save file</dt><dd><kbd>Ctrl S</kbd></dd></div>
+          <div><dt>Shortcuts</dt><dd><kbd>?</kbd></dd></div>
+        </dl>
+      </div>
+      <p class="sheet-note">Scrawl is <a href="https://github.com/mhfrough/scrawl" target="_blank" rel="noopener">open source</a> and runs entirely in your browser. Nothing you draw is sent anywhere.</p>
+      <div class="sheet-actions"><button class="btn btn-soft" type="button" data-close>Close</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="confirmDialog" aria-labelledby="confirmTitle">
+    <form method="dialog" class="sheet-inner">
+      <h2 id="confirmTitle">Are you sure?</h2>
+      <p id="confirmText"></p>
+      <div class="sheet-actions">
+        <button class="btn btn-danger" value="yes" id="confirmYes">Delete</button>
+        <button class="btn btn-soft" value="no">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="openFile" accept=".scrawl,.json,application/json" hidden>
+  <input type="file" id="imageFile" accept="image/*" multiple hidden>
+  <div class="drop" aria-hidden="true"><p class="drop-note">Let go to stick it on the page</p></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Scrawl needs JavaScript to draw.</p></noscript>
+
+  <script src="scene.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
