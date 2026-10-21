@@ -292,6 +292,7 @@
     <button class="menu-item" type="button" data-action="grid" data-icon="grid" id="gridItem" aria-pressed="false">Snap to grid<span class="hint">Ctrl '</span></button>
     <button class="menu-item" type="button" data-action="help" data-icon="help">Shortcuts<span class="hint">?</span></button>
     <button class="menu-item is-danger" type="button" data-action="clear" data-icon="trash">Clear page</button>
+    <button class="menu-item" type="button" data-action="more" data-icon="apps">More free tools</button>
     <div class="menu-sign">
       <a class="sign" href="https://github.com/mhfrough" target="_blank" rel="noopener">
         <span class="sign-by">Made by</span>
@@ -374,6 +375,36 @@
       <p class="sheet-note">Scrawl is <a href="https://github.com/mhfrough/scrawl" target="_blank" rel="noopener">open source</a> and runs entirely in your browser. Nothing you draw is sent anywhere.</p>
       <div class="sheet-actions"><button class="btn btn-soft" type="button" data-close>Close</button></div>
     </div>
+  </dialog>
+
+  <dialog class="sheet sheet-more" id="moreDialog" aria-labelledby="moreTitle">
+    <section class="sheet-inner more" id="more">
+      <h2 id="moreTitle">More free tools by <span class="more-by">Mohammad Hamza</span></h2>
+      <ul class="more-grid">
+        <li><a class="more-card" href="https://mhfrough.github.io/flick/">
+          <span class="more-ico" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#d4f84b"/><g fill="none" stroke="#11130f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 42 42 22"/><path d="M27 22h15v15"/></g><circle cx="18" cy="46" r="4" fill="#11130f"/></svg></span>
+          <span class="more-name">Flick</span>
+          <span class="more-desc">Send files between nearby devices</span>
+        </a></li>
+        <li><a class="more-card" href="https://mhfrough.github.io/pinch/">
+          <span class="more-ico" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#111214"/><path d="M8 14.5V9.5A1.5 1.5 0 0 1 9.5 8h5M24 17.5v5a1.5 1.5 0 0 1-1.5 1.5h-5" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="13" y="13" width="6" height="6" rx="1.5" fill="#5c7dff"/></svg></span>
+          <span class="more-name">Pinch</span>
+          <span class="more-desc">Compress and convert images</span>
+        </a></li>
+        <li><a class="more-card" href="https://mhfrough.github.io/sizzle/">
+          <span class="more-ico" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" fill="#111111"/><path fill="#a08672" fill-rule="evenodd" d="M3 0H13V3H12V5H13V7H12V9H13V11H12V13H13V16H3V13H4V11H3V9H4V7H3V5H4V3H3ZM6 4L11 8L6 12Z"/></svg></span>
+          <span class="more-name">Sizzle</span>
+          <span class="more-desc">Promo reels cut by your AI agent</span>
+        </a></li>
+        <li><a class="more-card" href="https://mhfrough.github.io/swoop/">
+          <span class="more-ico" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#ff5a1f"/><g fill="none" stroke="#141210" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 8.5c0 8.5 4.5 13.5 13 13.5"/><path d="m18.5 17.75 4.25 4.25-4.25 4.25"/></g></svg></span>
+          <span class="more-name">Swoop</span>
+          <span class="more-desc">Full-page screenshots and Print Screen</span>
+        </a></li>
+      </ul>
+      <p class="sheet-note">All free, open source and run in your browser.</p>
+      <div class="sheet-actions"><button class="btn btn-soft" type="button" data-close>Close</button></div>
+    </section>
   </dialog>
 
   <dialog class="sheet" id="confirmDialog" aria-labelledby="confirmTitle">

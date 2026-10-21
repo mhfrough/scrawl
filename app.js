@@ -95,6 +95,7 @@
     alignc: '<path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>',
     alignr: '<path d="M4 6h16M10 10h10M4 14h16M10 18h10"/>',
     tape: '<path d="M5 8.5 18.5 5l1.5 6L6.5 14.5z" fill="currentColor" opacity=".35"/><path d="M5 8.5 18.5 5l1.5 6L6.5 14.5zM8 14v5.5h11V12"/>',
+    apps: '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
   }
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`
 
@@ -1576,7 +1577,8 @@
   document.addEventListener('pointerdown', e => { if (!$('#menu').hidden && !e.target.closest('#menu, #menuBtn')) closeMenu() })
 
   $('#menu').addEventListener('click', e => {
-    const theme = e.target.closest('[data-theme]')
+    // Scoped to the switch: <html> carries data-theme too once Light or Dark is picked.
+    const theme = e.target.closest('#themeSeg [data-theme]')
     if (theme) { prefs.theme = theme.dataset.theme; savePrefs(); applyTheme(); return }
     const paper = e.target.closest('[data-paper]')
     if (paper) { prefs.paper = paper.dataset.paper; savePrefs(); applyTheme(); return }
@@ -1591,6 +1593,7 @@
     else if (a === 'export') openExport()
     else if (a === 'grid') toggleGrid()
     else if (a === 'help') openDialog('#helpDialog')
+    else if (a === 'more') openDialog('#moreDialog')
     else if (a === 'clear') clearCanvas()
   })
 
