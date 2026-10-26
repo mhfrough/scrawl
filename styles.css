@@ -72,6 +72,9 @@ body[data-tool="rect"] #canvas, body[data-tool="diamond"] #canvas, body[data-too
 body[data-tool="arrow"] #canvas, body[data-tool="line"] #canvas, body[data-tool="draw"] #canvas, body[data-tool="mark"] #canvas { cursor: crosshair; }
 body[data-tool="text"] #canvas { cursor: text; }
 body[data-tool="eraser"] #canvas { cursor: cell; }
+/* Sits over the page while the right-click menu is open, so Copy image takes the selection. */
+.copy-target { position: fixed; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.copy-target[hidden] { display: none; }
 
 .text-editor {
   position: fixed; z-index: 3; margin: 0; padding: 0; border: 0; outline: 0;

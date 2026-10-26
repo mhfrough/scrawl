@@ -809,6 +809,7 @@
     if (pointers.size === 2) { cancelDrag(); startPinch(); return }
     if (pointers.size > 2) return
     if (editing) { commitText(); if (tool === 'text') return }
+    if (e.button === 2) aimCopy(e.clientX, e.clientY)
     canvas.setPointerCapture(e.pointerId)
     const [x, y] = toScene(e.clientX, e.clientY)
     lastScene = [x, y]
@@ -1526,27 +1527,102 @@
 
   /* ---------- clipboard ---------- */
 
-  const clip = () => JSON.stringify({ type: 'scrawl/clipboard', elements: selectedEls() })
+  const clip = els => JSON.stringify({ type: 'scrawl/clipboard', elements: els })
+  const canvasPng = c => new Promise(res => c.toBlob(res, 'image/png'))
+
+  // One picture goes out as itself, at its own size with no paper. Anything else is drawn
+  // tight around the selection, with paper or without as the export sheet is set.
+  async function selectionPng(els) {
+    await picturesReady(els)
+    const f = els.length === 1 && els[0].type === 'image' && files.get(els[0].fileId)
+    if (f?.blob?.type === 'image/png') return f.blob
+    if (f?.img?.naturalWidth) {
+      const c = document.createElement('canvas')
+      c.width = f.img.naturalWidth; c.height = f.img.naturalHeight
+      c.getContext('2d').drawImage(f.img, 0, 0)
+      return canvasPng(c)
+    }
+    return canvasPng(S.renderPNG(els, { ...exportOpts(), padding: 12 }))
+  }
+
+  // Other apps get the picture. The elements ride along in the HTML for Scrawl to read back,
+  // and plain text is left off so chats and docs paste the picture, not the JSON.
+  function copyPicture(els) {
+    if (!window.ClipboardItem || !navigator.clipboard?.write) return
+    const png = selectionPng(els)
+    const html = png.then(blobToDataUrl).then(url => {
+      const img = document.createElement('img')
+      img.alt = ''
+      img.src = url
+      img.dataset.scrawl = clip(els)
+      return new Blob([img.outerHTML], { type: 'text/html' })
+    })
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': png, 'text/html': html })]).catch(() => { /* the text copy below stays */ })
+  }
+
+  function copySelection(e) {
+    const els = selectedEls()
+    e.clipboardData.setData('text/plain', clip(els))
+    e.preventDefault()
+    copyPicture(els)
+  }
+  // The browser's own Copy image on the page copies the whole canvas. A right-click picks what is
+  // under the pointer, then an invisible picture of just the selection covers the page, so the
+  // menu copies that instead. Empty paper clears the selection and leaves the board to copy.
+  const copyTarget = $('#copyTarget')
+  let copyKey = '', copyAt = [0, 0]
+  function aimCopy(cx, cy) {
+    copyAt = [cx, cy]
+    const [x, y] = toScene(cx, cy)
+    const b = selected.size && S.unionBounds(selectedEls())
+    if (!(b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)) {
+      const hit = topHit(x, y)
+      selected = new Set(hit ? [hit.id] : [])
+      updateContext(); requestRender()
+    }
+    if (!selected.size) return
+    const els = selectedEls()
+    const key = els.map(e => e.id + e.v).join() + JSON.stringify(exportOpts())
+    if (key !== copyKey) {
+      const f = els.length === 1 && els[0].type === 'image' && files.get(els[0].fileId)
+      copyTarget.src = f?.url || S.renderPNG(els, { ...exportOpts(), padding: 12 }).toDataURL('image/png')
+      copyKey = key
+    }
+    copyTarget.hidden = false
+  }
+  // Copy image looks again at the spot that was clicked, so this stays until the pointer really
+  // moves on, then gets out of the way, passing a click through to the canvas.
+  copyTarget.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - copyAt[0], e.clientY - copyAt[1]) > 3) copyTarget.hidden = true })
+  copyTarget.addEventListener('pointerdown', e => { copyTarget.hidden = true; onDown(e) })
+  copyTarget.addEventListener('wheel', () => { copyTarget.hidden = true }, { passive: true })
+
   document.addEventListener('copy', e => {
     if (isTyping(e.target) || !selected.size) return
-    e.clipboardData.setData('text/plain', clip())
-    e.preventDefault()
+    copySelection(e)
     toast(selected.size === 1 ? 'Copied' : `Copied ${selected.size} things`)
   })
   document.addEventListener('cut', e => {
     if (isTyping(e.target) || !selected.size) return
-    e.clipboardData.setData('text/plain', clip())
-    e.preventDefault()
+    copySelection(e)
     deleteSelected()
   })
+
+  // Scrawl's own copies keep their elements in the HTML, or in plain text from older copies.
+  function pastedText(cd) {
+    const html = cd?.getData('text/html') || ''
+    const ours = html.includes('data-scrawl') && new DOMParser().parseFromString(html, 'text/html').querySelector('[data-scrawl]')?.dataset.scrawl
+    return ours || cd?.getData('text/plain') || ''
+  }
+
   document.addEventListener('paste', e => {
     if (isTyping(e.target) || dialogOpen()) return
-    const pics = [...(e.clipboardData?.files || [])].filter(f => IMAGE_TYPE.test(f.type))
-    if (pics.length) { e.preventDefault(); addImages(pics, ...lastScene); return }
-    const text = e.clipboardData?.getData('text/plain') || ''
+    const text = pastedText(e.clipboardData)
     let data = null
     try { data = JSON.parse(text) } catch { /* plain text */ }
-    if (data && (data.type === 'scrawl/clipboard' || data.type === 'scrawl') && Array.isArray(data.elements)) {
+    const ours = data && (data.type === 'scrawl/clipboard' || data.type === 'scrawl') && Array.isArray(data.elements)
+    const pics = ours ? [] : [...(e.clipboardData?.files || [])].filter(f => IMAGE_TYPE.test(f.type))
+    if (pics.length) { e.preventDefault(); addImages(pics, ...lastScene); return }
+    if (ours) {
       const els = data.elements.map(S.sanitize).filter(Boolean)
       if (!els.length) return
       measureTexts(els)

@@ -15,6 +15,7 @@ A sketchbook in your browser. Felt-tip diagrams, flows and wireframes on dotted 
 - **Editing.** Select, multi-select (Shift or drag a box), move, resize, Alt-drag to duplicate, layer order, copy and paste, undo and redo, zoom and pan, snap to the dots.
 - **Saving.** Every change autosaves to the browser (`localStorage` for drawings, IndexedDB for pictures). *My drawings* keeps any number of pages with thumbnails.
 - **Files.** Save and open `.scrawl` files (plain JSON) and export PNG (1×–3×) or SVG, with or without paper, light or dark. You can also copy a PNG straight to the clipboard.
+- **Copy and paste.** Copying a selection (`Ctrl C`, or Copy image on the right-click menu) puts just that selection on the clipboard as a PNG, so it pastes cleanly into an image editor, a chat or a doc. A single picture goes out as itself, at its own size with no paper. Other things are cropped tight, with paper or without as the export sheet is set. Pasted back into Scrawl, they come back as shapes you can still edit.
 - **Paper and theme.** Dotted, ruled or plain paper; light, dark or automatic theme. Dark mode flips each colour's lightness so drawings read the same on both.
 - **Phones.** Tools move to a bar along the bottom, and pinch zooms.
 
